@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDlxm_8sv7BHzddWQlVgyGo1VvXtAyWxG4",
-    authDomain: "lifeos-7ce24.firebaseapp.com",
-    projectId: "lifeos-7ce24",
-    storageBucket: "lifeos-7ce24.firebasestorage.app",
-    messagingSenderId: "898752263197",
-    appId: "1:898752263197:web:511d29cb6e8e4dcb68c2f4"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
