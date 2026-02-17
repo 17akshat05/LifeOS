@@ -4,10 +4,14 @@ import App from './App.jsx'
 import './index.css'
 import { Providers } from './context/Providers'
 
+import ErrorBoundary from './components/ErrorBoundary.jsx'
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Providers>
-      <App />
-    </Providers>
+    <ErrorBoundary>
+      <Providers>
+        <App />
+      </Providers>
+    </ErrorBoundary>
   </React.StrictMode>,
 )
