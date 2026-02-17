@@ -19,6 +19,12 @@ export const UserProvider = ({ children }) => {
 
     // Auth Listener
     useEffect(() => {
+        if (!auth) {
+            console.error("Auth instance is null. Firebase config might be missing.");
+            setLoading(false);
+            return;
+        }
+
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             setUser(currentUser);
             if (currentUser) {
@@ -31,7 +37,7 @@ export const UserProvider = ({ children }) => {
                     } else {
                         // Initialize new user
                         const initialData = {
-                            phoneNumber: currentUser.phoneNumber,
+                            phoneNumber: currentUser.phoneNumber || currentUser.email || 'Anonymous',
                             xp: 0,
                             level: 1,
                             streak: 1,
@@ -120,6 +126,16 @@ export const UserProvider = ({ children }) => {
     };
 
     const logout = () => signOut(auth);
+
+    if (!auth) {
+        return (
+            <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'white', background: '#09090b', padding: '20px', textAlign: 'center' }}>
+                <h1 style={{ color: '#ef4444', marginBottom: '1rem' }}>Configuration Error</h1>
+                <p>Firebase is not initialized.</p>
+                <p style={{ opacity: 0.7, fontSize: '0.9rem', marginTop: '0.5rem' }}>Please check that your <code>.env</code> file exists and has the correct keys.</p>
+            </div>
+        );
+    }
 
     return (
         <UserContext.Provider value={{ user, userData, loading, addXP, logout }}>
