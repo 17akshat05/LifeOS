@@ -19,20 +19,27 @@ export const UserProvider = ({ children }) => {
 
     // Auth Listener
     useEffect(() => {
+        // Failsafe: If Firebase takes too long, stop loading so user sees something (e.g. Login or Onboarding)
+        const safetyTimer = setTimeout(() => setLoading(false), 2500);
+
         if (!auth) {
             console.error("Auth instance is null. Firebase config might be missing.");
             setLoading(false);
+            clearTimeout(safetyTimer);
             return;
         }
 
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            clearTimeout(safetyTimer); // Auth responded
             setUser(currentUser);
+
             if (currentUser) {
                 // Subscribe to user data in Firestore
                 const userRef = doc(db, 'users', currentUser.uid);
                 const unsubData = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
+                        // Only check streak if lastLogin exists
                         checkDailyStreak(docSnap.data(), userRef);
                     } else {
                         // Initialize new user
@@ -46,14 +53,18 @@ export const UserProvider = ({ children }) => {
                         setDoc(userRef, initialData);
                         setUserData(initialData);
                     }
+                    setLoading(false); // Data loaded, app is ready
                 });
-                return () => unsubData();
+                // We keep the subscription active
             } else {
                 setUserData({ xp: 0, level: 1, streak: 0, lastLogin: null });
+                setLoading(false); // No user, app is ready (Login screen)
             }
-            setLoading(false);
         });
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+            clearTimeout(safetyTimer);
+        };
     }, []);
 
     // Daily Streak Logic

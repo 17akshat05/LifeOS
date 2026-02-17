@@ -13,6 +13,13 @@ const Onboarding = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // If already has username, go Home
+    React.useEffect(() => {
+        if (userData?.username) {
+            navigate('/');
+        }
+    }, [userData, navigate]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
