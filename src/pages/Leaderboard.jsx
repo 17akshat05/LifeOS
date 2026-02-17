@@ -87,7 +87,9 @@ const Leaderboard = () => {
                             </div>
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 'bold' }}>
-                                    {leader.username ? `@${leader.username}` : (leader.phoneNumber ? `User ${leader.phoneNumber.slice(-4)}` : 'Anonymous')}
+                                    {leader.id === userData?.uid || leader.id === user?.uid
+                                        ? `You (@${leader.username})`
+                                        : (leader.username ? `@${leader.username}` : (leader.phoneNumber ? `User ${leader.phoneNumber.slice(-4)}` : 'Anonymous'))}
                                 </div>
                                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Level {leader.level}</div>
                             </div>

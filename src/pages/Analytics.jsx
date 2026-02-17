@@ -17,12 +17,18 @@ const Analytics = () => {
     const totalTasks = tasks.length;
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    // Mock Productivity Data (Last 7 days)
+    // Real Productivity Data (Last 7 days - based on Workouts)
     const productivityData = Array.from({ length: 7 }).map((_, i) => {
         const date = subDays(new Date(), 6 - i);
+        const dayStr = format(date, 'EEE');
+        const dateStr = date.toDateString();
+
+        // Count completed workouts for this day
+        const score = history.filter(h => new Date(h.date).toDateString() === dateStr).length;
+
         return {
-            day: format(date, 'EEE'),
-            score: Math.floor(Math.random() * 40) + 60 // Mock data for visual as we don't have historical task data
+            day: dayStr,
+            score: score // Real count: 0 if no workouts
         };
     });
 
