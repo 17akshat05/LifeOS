@@ -1,5 +1,7 @@
-import React, { createContext, useContext } from 'react';
-import useDataSync from '../hooks/useDataSync';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useUser } from './UserContext';
 import { v4 as uuidv4 } from 'uuid';
 
 const TrainingContext = createContext();
@@ -7,42 +9,64 @@ const TrainingContext = createContext();
 export const useTraining = () => useContext(TrainingContext);
 
 export const TrainingProvider = ({ children }) => {
-    const [routines, setRoutines] = useDataSync('lifeos_routines', [
-        {
-            id: 'default-1',
-            name: 'Full Body A',
-            exercises: [
-                { id: 'ex-1', name: 'Squat', sets: 3, reps: '8-10' },
-                { id: 'ex-2', name: 'Bench Press', sets: 3, reps: '8-10' },
-                { id: 'ex-3', name: 'Rows', sets: 3, reps: '10-12' }
-            ]
+    const { user } = useUser();
+    const [routines, setRoutines] = useState([]);
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // Sync Routines & History
+    useEffect(() => {
+        if (!user) {
+            setRoutines([]);
+            setHistory([]);
+            setLoading(false);
+            return;
         }
-    ]);
 
-    const [history, setHistory] = useDataSync('lifeos_training_history', []);
+        // 1. Sync Routines
+        const unsubRoutines = onSnapshot(collection(db, 'users', user.uid, 'routines'), (snapshot) => {
+            setRoutines(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
 
-    const addRoutine = (name, exercises) => {
-        const newRoutine = { id: uuidv4(), name, exercises };
-        setRoutines(prev => [...prev, newRoutine]);
+        // 2. Sync History
+        const qHistory = query(collection(db, 'users', user.uid, 'training_history'), orderBy('date', 'desc'));
+        const unsubHistory = onSnapshot(qHistory, (snapshot) => {
+            setHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+
+        setLoading(false);
+        return () => {
+            unsubRoutines();
+            unsubHistory();
+        };
+    }, [user]);
+
+    const addRoutine = async (name, exercises) => {
+        if (!user) return;
+        await addDoc(collection(db, 'users', user.uid, 'routines'), {
+            name,
+            exercises
+        });
     };
 
-    const updateRoutine = (id, updatedRoutine) => {
-        setRoutines(prev => prev.map(r => r.id === id ? { ...r, ...updatedRoutine } : r));
+    const updateRoutine = async (id, updatedRoutine) => {
+        if (!user) return;
+        await updateDoc(doc(db, 'users', user.uid, 'routines', id), updatedRoutine);
     };
 
-    const deleteRoutine = (id) => {
-        setRoutines(prev => prev.filter(r => r.id !== id));
+    const deleteRoutine = async (id) => {
+        if (!user) return;
+        await deleteDoc(doc(db, 'users', user.uid, 'routines', id));
     };
 
-    const logWorkout = (routineId, duration, exercisesCompleted) => {
-        const newLog = {
-            id: uuidv4(),
+    const logWorkout = async (routineId, duration, exercisesCompleted) => {
+        if (!user) return;
+        await addDoc(collection(db, 'users', user.uid, 'training_history'), {
             routineId,
             date: new Date().toISOString(),
             duration,
             exercises: exercisesCompleted
-        };
-        setHistory(prev => [newLog, ...prev]);
+        });
     };
 
     // XP Calculation
@@ -57,7 +81,7 @@ export const TrainingProvider = ({ children }) => {
     };
 
     return (
-        <TrainingContext.Provider value={{ routines, history, addRoutine, updateRoutine, deleteRoutine, logWorkout, getXP, getLevel }}>
+        <TrainingContext.Provider value={{ routines, history, loading, addRoutine, updateRoutine, deleteRoutine, logWorkout, getXP, getLevel }}>
             {children}
         </TrainingContext.Provider>
     );

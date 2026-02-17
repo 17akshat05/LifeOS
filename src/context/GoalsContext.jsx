@@ -1,63 +1,83 @@
-import React, { createContext, useContext } from 'react';
-import useDataSync from '../hooks/useDataSync';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useUser } from './UserContext';
+import { v4 as uuidv4 } from 'uuid'; // Keep for milestones IDs inside the doc
 
 const GoalsContext = createContext();
 
 export const useGoals = () => useContext(GoalsContext);
 
 export const GoalsProvider = ({ children }) => {
-    const [goals, setGoals] = useDataSync('lifeos_goals', [
-        {
-            id: 'g1',
-            title: 'Buy a House',
-            targetDate: '2028-01-01',
-            progress: 25,
-            milestones: [
-                { id: 'm1', title: 'Save $50k', completed: true },
-                { id: 'm2', title: 'Improve Credit Score', completed: false }
-            ]
-        }
-    ]);
+    const { user } = useUser();
+    const [goals, setGoals] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const addGoal = (title, targetDate) => {
-        const newGoal = {
-            id: uuidv4(),
+    // Sync Goals
+    useEffect(() => {
+        if (!user) {
+            setGoals([]);
+            setLoading(false);
+            return;
+        }
+
+        const q = query(collection(db, 'users', user.uid, 'goals'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setGoals(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [user]);
+
+    const addGoal = async (title, targetDate) => {
+        if (!user) return;
+        await addDoc(collection(db, 'users', user.uid, 'goals'), {
             title,
             targetDate,
             progress: 0,
             milestones: []
-        };
-        setGoals(prev => [...prev, newGoal]);
+        });
     };
 
-    const addMilestone = (goalId, title) => {
-        setGoals(prev => prev.map(g => {
-            if (g.id === goalId) {
-                return { ...g, milestones: [...g.milestones, { id: uuidv4(), title, completed: false }] };
-            }
-            return g;
-        }));
+    const addMilestone = async (goalId, title) => {
+        if (!user) return;
+        const goal = goals.find(g => g.id === goalId);
+        if (goal) {
+            const newMilestones = [...goal.milestones, { id: uuidv4(), title, completed: false }];
+            const completedCount = newMilestones.filter(m => m.completed).length;
+            const progress = (completedCount / newMilestones.length) * 100;
+
+            await updateDoc(doc(db, 'users', user.uid, 'goals', goalId), {
+                milestones: newMilestones,
+                progress
+            });
+        }
     };
 
-    const toggleMilestone = (goalId, milestoneId) => {
-        setGoals(prev => prev.map(g => {
-            if (g.id === goalId) {
-                const updatedMilestones = g.milestones.map(m => m.id === milestoneId ? { ...m, completed: !m.completed } : m);
-                const completedCount = updatedMilestones.filter(m => m.completed).length;
-                const progress = updatedMilestones.length > 0 ? (completedCount / updatedMilestones.length) * 100 : 0;
-                return { ...g, milestones: updatedMilestones, progress };
-            }
-            return g;
-        }));
+    const toggleMilestone = async (goalId, milestoneId) => {
+        if (!user) return;
+        const goal = goals.find(g => g.id === goalId);
+        if (goal) {
+            const updatedMilestones = goal.milestones.map(m =>
+                m.id === milestoneId ? { ...m, completed: !m.completed } : m
+            );
+            const completedCount = updatedMilestones.filter(m => m.completed).length;
+            const progress = updatedMilestones.length > 0 ? (completedCount / updatedMilestones.length) * 100 : 0;
+
+            await updateDoc(doc(db, 'users', user.uid, 'goals', goalId), {
+                milestones: updatedMilestones,
+                progress
+            });
+        }
     };
 
-    const deleteGoal = (id) => {
-        setGoals(prev => prev.filter(g => g.id !== id));
+    const deleteGoal = async (id) => {
+        if (!user) return;
+        await deleteDoc(doc(db, 'users', user.uid, 'goals', id));
     };
 
     return (
-        <GoalsContext.Provider value={{ goals, addGoal, addMilestone, toggleMilestone, deleteGoal }}>
+        <GoalsContext.Provider value={{ goals, loading, addGoal, addMilestone, toggleMilestone, deleteGoal }}>
             {children}
         </GoalsContext.Provider>
     );

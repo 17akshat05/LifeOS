@@ -1,53 +1,82 @@
-import React, { createContext, useContext } from 'react';
-import useDataSync from '../hooks/useDataSync';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, setDoc, query, orderBy } from 'firebase/firestore';
+import { useUser } from './UserContext';
 
 const NotesContext = createContext();
 
 export const useNotes = () => useContext(NotesContext);
 
 export const NotesProvider = ({ children }) => {
-    const [notes, setNotes] = useDataSync('lifeos_notes', [
-        {
-            id: 'welcome-note',
-            title: 'Welcome to Notes',
-            content: 'This is your new digital brain. \n\nFeatures:\n- Create folders\n- Add tags\n- Secure private notes',
-            folder: 'General',
-            tags: ['welcome', 'info'],
-            updatedAt: new Date().toISOString()
+    const { user } = useUser();
+    const [notes, setNotes] = useState([]);
+    const [folders, setFolders] = useState(['General', 'Personal', 'Work', 'Ideas']);
+    const [loading, setLoading] = useState(true);
+
+    // Sync Notes & Folders
+    useEffect(() => {
+        if (!user) {
+            setNotes([]);
+            setLoading(false);
+            return;
         }
-    ]);
 
-    const [folders, setFolders] = useDataSync('lifeos_folders', ['General', 'Personal', 'Work', 'Ideas']);
+        // 1. Sync Notes
+        const q = query(collection(db, 'users', user.uid, 'notes'), orderBy('updatedAt', 'desc'));
+        const unsubNotes = onSnapshot(q, (snapshot) => {
+            setNotes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
 
-    const addNote = (title, content, folder = 'General', tags = []) => {
-        const newNote = {
-            id: uuidv4(),
+        // 2. Sync Folders (stored in users/{uid}/settings/notes)
+        const folderRef = doc(db, 'users', user.uid, 'settings', 'notes');
+        const unsubFolders = onSnapshot(folderRef, (docSnap) => {
+            if (docSnap.exists() && docSnap.data().folders) {
+                setFolders(docSnap.data().folders);
+            } else {
+                // Initialize default folders if not exists
+                setDoc(folderRef, { folders: ['General', 'Personal', 'Work', 'Ideas'] }, { merge: true });
+            }
+        });
+
+        setLoading(false);
+        return () => {
+            unsubNotes();
+            unsubFolders();
+        };
+    }, [user]);
+
+    const addNote = async (title, content, folder = 'General', tags = []) => {
+        if (!user) return;
+        await addDoc(collection(db, 'users', user.uid, 'notes'), {
             title: title || 'Untitled Note',
             content,
             folder,
             tags,
             updatedAt: new Date().toISOString()
-        };
-        setNotes(prev => [newNote, ...prev]);
+        });
     };
 
-    const updateNote = (id, updates) => {
-        setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n));
+    const updateNote = async (id, updates) => {
+        if (!user) return;
+        await updateDoc(doc(db, 'users', user.uid, 'notes', id), {
+            ...updates,
+            updatedAt: new Date().toISOString()
+        });
     };
 
-    const deleteNote = (id) => {
-        setNotes(prev => prev.filter(n => n.id !== id));
+    const deleteNote = async (id) => {
+        if (!user) return;
+        await deleteDoc(doc(db, 'users', user.uid, 'notes', id));
     };
 
-    const addFolder = (name) => {
-        if (!folders.includes(name)) {
-            setFolders(prev => [...prev, name]);
-        }
+    const addFolder = async (name) => {
+        if (!user || folders.includes(name)) return;
+        const newFolders = [...folders, name];
+        await setDoc(doc(db, 'users', user.uid, 'settings', 'notes'), { folders: newFolders }, { merge: true });
     };
 
     return (
-        <NotesContext.Provider value={{ notes, folders, addNote, updateNote, deleteNote, addFolder }}>
+        <NotesContext.Provider value={{ notes, folders, loading, addNote, updateNote, deleteNote, addFolder }}>
             {children}
         </NotesContext.Provider>
     );

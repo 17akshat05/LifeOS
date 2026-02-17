@@ -20,8 +20,11 @@ const Layout = () => {
   }
 
   // If user is logged in BUT has no username, FORCE them to /onboarding
-  // unless they are already there.
-  if (user && !userData?.username && location.pathname !== '/onboarding') {
+  // Only if we have actually loaded data (userData is not null/empty/loading)
+  // We check if userData has at least some keys loaded to confirm it's not the initial default state
+  const isDataLoaded = userData && (userData.lastLogin || userData.username);
+
+  if (user && isDataLoaded && !userData?.username && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 

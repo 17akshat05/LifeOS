@@ -1,59 +1,66 @@
-import React, { createContext, useContext } from 'react';
-import useDataSync from '../hooks/useDataSync';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useUser } from './UserContext';
 
 const PlannerContext = createContext();
 
 export const usePlanner = () => useContext(PlannerContext);
 
 export const PlannerProvider = ({ children }) => {
-    const [tasks, setTasks] = useDataSync('lifeos_tasks', []);
+    const { user } = useUser();
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const addTask = (title, description, priority = 'medium', date = new Date()) => {
-        const newTask = {
-            id: uuidv4(),
+    // Sync Tasks
+    useEffect(() => {
+        if (!user) {
+            setTasks([]);
+            setLoading(false);
+            return;
+        }
+
+        const q = query(collection(db, 'users', user.uid, 'tasks'), orderBy('createdAt', 'desc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setTasks(data);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [user]);
+
+    const addTask = async (title, description, priority = 'medium', date = new Date()) => {
+        if (!user) return;
+        await addDoc(collection(db, 'users', user.uid, 'tasks'), {
             title,
             description,
             priority,
             completed: false,
-            date: date.toISOString(), // Store as string
+            date: date.toISOString(),
             createdAt: new Date().toISOString()
-        };
-        setTasks((prev) => [...prev, newTask]);
+        });
     };
 
-    const toggleTask = (id) => {
-        setTasks((prev) =>
-            prev.map(task =>
-                task.id === id ? { ...task, completed: !task.completed } : task
-            )
-        );
+    const toggleTask = async (id) => {
+        if (!user) return;
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+            await updateDoc(doc(db, 'users', user.uid, 'tasks', id), { completed: !task.completed });
+        }
     };
 
-    const deleteTask = (id) => {
-        setTasks((prev) => prev.filter(task => task.id !== id));
+    const deleteTask = async (id) => {
+        if (!user) return;
+        await deleteDoc(doc(db, 'users', user.uid, 'tasks', id));
     };
 
-    const updateTask = (id, updates) => {
-        setTasks((prev) =>
-            prev.map(task =>
-                task.id === id ? { ...task, ...updates } : task
-            )
-        );
-    };
-
-    // Reordering would go here (requires logic dependent on drag-and-drop lib or manual splice)
-
-    const value = {
-        tasks,
-        addTask,
-        toggleTask,
-        deleteTask,
-        updateTask
+    const updateTask = async (id, updates) => {
+        if (!user) return;
+        await updateDoc(doc(db, 'users', user.uid, 'tasks', id), updates);
     };
 
     return (
-        <PlannerContext.Provider value={value}>
+        <PlannerContext.Provider value={{ tasks, loading, addTask, toggleTask, deleteTask, updateTask }}>
             {children}
         </PlannerContext.Provider>
     );

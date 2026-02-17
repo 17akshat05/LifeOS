@@ -1,31 +1,68 @@
-import React, { createContext, useContext } from 'react';
-import useDataSync from '../hooks/useDataSync';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useUser } from './UserContext';
 
 const FinanceContext = createContext();
 
 export const useFinance = () => useContext(FinanceContext);
 
 export const FinanceProvider = ({ children }) => {
-    const [transactions, setTransactions] = useDataSync('lifeos_finance', [
-        { id: 't1', title: 'Groceries', amount: -45.50, category: 'Food', date: new Date().toISOString() },
-        { id: 't2', title: 'Salary', amount: 3200, category: 'Income', date: new Date().toISOString() },
-        { id: 't3', title: 'Gym Membership', amount: -50, category: 'Health', date: new Date().toISOString() },
-    ]);
+    const { user } = useUser();
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const addTransaction = (title, amount, category) => {
-        const newTransaction = {
-            id: uuidv4(),
+    // Real-time Sync with Firestore
+    useEffect(() => {
+        if (!user) {
+            setTransactions([]);
+            setLoading(false);
+            return;
+        }
+
+        const q = query(
+            collection(db, 'users', user.uid, 'transactions'),
+            orderBy('date', 'desc')
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setTransactions(data);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching transactions:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user]);
+
+    const addTransaction = async (title, amount, category, type) => {
+        if (!user) return;
+
+        // Ensure amount sign is correct based on type
+        const finalAmount = type === 'expense' ? -Math.abs(parseFloat(amount)) : Math.abs(parseFloat(amount));
+
+        await addDoc(collection(db, 'users', user.uid, 'transactions'), {
             title,
-            amount: parseFloat(amount),
+            amount: finalAmount,
             category,
+            type,
             date: new Date().toISOString()
-        };
-        setTransactions(prev => [newTransaction, ...prev]);
+        });
     };
 
-    const deleteTransaction = (id) => {
-        setTransactions(prev => prev.filter(t => t.id !== id));
+    const deleteTransaction = async (id) => {
+        if (!user) return;
+        await deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
+    };
+
+    const updateTransaction = async (id, updates) => {
+        if (!user) return;
+        await updateDoc(doc(db, 'users', user.uid, 'transactions', id), updates);
     };
 
     const getBalance = () => transactions.reduce((acc, t) => acc + t.amount, 0);
@@ -35,7 +72,16 @@ export const FinanceProvider = ({ children }) => {
     const getExpenses = () => transactions.filter(t => t.amount < 0).reduce((acc, t) => acc + Math.abs(t.amount), 0);
 
     return (
-        <FinanceContext.Provider value={{ transactions, addTransaction, deleteTransaction, getBalance, getIncome, getExpenses }}>
+        <FinanceContext.Provider value={{
+            transactions,
+            loading,
+            addTransaction,
+            deleteTransaction,
+            updateTransaction,
+            getBalance,
+            getIncome,
+            getExpenses
+        }}>
             {children}
         </FinanceContext.Provider>
     );

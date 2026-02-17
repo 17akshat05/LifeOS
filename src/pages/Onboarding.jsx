@@ -51,10 +51,8 @@ const Onboarding = () => {
             });
 
             // Redirect home
-            // Force reload to update context state or handle checks? 
-            // Navigation should be enough if layout checks context
+            // Navigation is enough because Layout checks context which updates automatically from Firestore
             navigate('/');
-            window.location.reload(); // Ensure context refreshes with new data
         } catch (err) {
             console.error(err);
             setError('Failed to save username. Try again.');

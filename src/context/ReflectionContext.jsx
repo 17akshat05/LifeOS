@@ -1,32 +1,41 @@
-import React, { createContext, useContext } from 'react';
-import useDataSync from '../hooks/useDataSync';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { useUser } from './UserContext';
 
 const ReflectionContext = createContext();
 
 export const useReflection = () => useContext(ReflectionContext);
 
 export const ReflectionProvider = ({ children }) => {
-    const [entries, setEntries] = useDataSync('lifeos_reflection', [
-        {
-            id: 'r1',
-            date: new Date().toISOString(),
-            mood: 'happy',
-            gratitude: 'Family, Coffee, Code',
-            journal: 'Today was a productive day. I built a lot of features.'
-        }
-    ]);
+    const { user } = useUser();
+    const [entries, setEntries] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const addEntry = (mood, gratitude, journal) => {
-        const newEntry = {
-            id: uuidv4(),
+    // Sync Reflections
+    useEffect(() => {
+        if (!user) {
+            setEntries([]);
+            setLoading(false);
+            return;
+        }
+
+        const q = query(collection(db, 'users', user.uid, 'reflections'), orderBy('date', 'desc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setEntries(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [user]);
+
+    const addEntry = async (mood, gratitude, journal) => {
+        if (!user) return;
+        await addDoc(collection(db, 'users', user.uid, 'reflections'), {
             date: new Date().toISOString(),
             mood,
             gratitude,
             journal
-        };
-        // Check if entry already exists for today? For now just append.
-        setEntries(prev => [newEntry, ...prev]);
+        });
     };
 
     const getMoodEmoji = (mood) => {
@@ -41,7 +50,7 @@ export const ReflectionProvider = ({ children }) => {
     };
 
     return (
-        <ReflectionContext.Provider value={{ entries, addEntry, getMoodEmoji }}>
+        <ReflectionContext.Provider value={{ entries, loading, addEntry, getMoodEmoji }}>
             {children}
         </ReflectionContext.Provider>
     );
