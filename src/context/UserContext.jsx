@@ -20,7 +20,7 @@ export const UserProvider = ({ children }) => {
     // Auth Listener
     useEffect(() => {
         // Failsafe: If Firebase takes too long, stop loading so user sees something (e.g. Login or Onboarding)
-        const safetyTimer = setTimeout(() => setLoading(false), 2500);
+        const safetyTimer = setTimeout(() => setLoading(false), 5000);
 
         if (!auth) {
             console.error("Auth instance is null. Firebase config might be missing.");

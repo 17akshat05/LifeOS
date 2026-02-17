@@ -13,35 +13,25 @@ const Leaderboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchLeaders = async () => {
-            try {
-                const usersRef = collection(db, 'users');
-                const q = query(usersRef, orderBy('xp', 'desc'), limit(10));
+        setLoading(true);
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, orderBy('xp', 'desc'), limit(10));
 
-                // Timeout promise
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Request timed out")), 5000)
-                );
+        // Use onSnapshot for Real-Time Updates
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const results = [];
+            querySnapshot.forEach((doc) => {
+                results.push({ id: doc.id, ...doc.data() });
+            });
+            setLeaders(results);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching leaderboard:", error);
+            setLoading(false);
+        });
 
-                const querySnapshot = await Promise.race([
-                    getDocs(q),
-                    timeoutPromise
-                ]);
-
-                const results = [];
-                querySnapshot.forEach((doc) => {
-                    results.push({ id: doc.id, ...doc.data() });
-                });
-                setLeaders(results);
-            } catch (error) {
-                console.error("Error fetching leaderboard:", error);
-                // Optionally set an error state to show UI
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchLeaders();
+        // Cleanup listener on unmount
+        return () => unsubscribe();
     }, []);
 
     const getRankIcon = (index) => {
