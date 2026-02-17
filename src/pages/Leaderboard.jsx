@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { db } from '../firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import Card from '../components/Card';
 import { Trophy, Medal, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
