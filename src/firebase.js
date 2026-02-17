@@ -11,11 +11,18 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+let app;
+let auth;
+let db;
+
 if (!firebaseConfig.apiKey) {
     console.error("Firebase API Key is missing! Check your .env file or Vercel Environment Variables.");
-    throw new Error("Firebase API Key is missing. Please check your Environment Variables in Vercel.");
+    // Do not throw here, or the app will crash white/black screen.
+    // Instead, leave auth/db as undefined/null so we can handle it in the UI.
+} else {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
 }
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export { auth, db };
