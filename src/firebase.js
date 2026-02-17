@@ -25,4 +25,6 @@ if (!firebaseConfig.apiKey) {
     db = getFirestore(app);
 }
 
+import { GoogleAuthProvider } from "firebase/auth";
+export const googleProvider = new GoogleAuthProvider();
 export { auth, db };

@@ -1,4 +1,5 @@
 import React from 'react';
+import { UserProvider } from './UserContext';
 import { PlannerProvider } from './PlannerContext';
 import { TrainingProvider } from './TrainingContext';
 import { NotesProvider } from './NotesContext';
@@ -8,18 +9,20 @@ import { ReflectionProvider } from './ReflectionContext';
 
 export const Providers = ({ children }) => {
     return (
-        <PlannerProvider>
-            <TrainingProvider>
-                <NotesProvider>
-                    <FinanceProvider>
-                        <GoalsProvider>
-                            <ReflectionProvider>
-                                {children}
-                            </ReflectionProvider>
-                        </GoalsProvider>
-                    </FinanceProvider>
-                </NotesProvider>
-            </TrainingProvider>
-        </PlannerProvider>
+        <UserProvider>
+            <PlannerProvider>
+                <TrainingProvider>
+                    <NotesProvider>
+                        <FinanceProvider>
+                            <GoalsProvider>
+                                <ReflectionProvider>
+                                    {children}
+                                </ReflectionProvider>
+                            </GoalsProvider>
+                        </FinanceProvider>
+                    </NotesProvider>
+                </TrainingProvider>
+            </PlannerProvider>
+        </UserProvider>
     );
 };
