@@ -18,7 +18,44 @@ const Profile = () => {
     const { goals } = useGoals();
     const { entries } = useReflection();
 
-    // ... exports ...
+    const handleExport = () => {
+        const data = {
+            tasks,
+            training: { routines, history },
+            notes,
+            finance: transactions,
+            goals,
+            reflection: entries,
+            exportedAt: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lifeos-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                alert("Import feature detected valid JSON. To implement full restore, we would need to overwrite current contexts.");
+                console.log("Imported Data:", data);
+            } catch (err) {
+                alert("Invalid backup file.");
+            }
+        };
+        reader.readAsText(file);
+    };
 
     const displayName = userData?.username ? `@${userData.username}` : (userData?.phoneNumber ? `User ${userData.phoneNumber.slice(-4)}` : 'User');
 

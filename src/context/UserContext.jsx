@@ -30,19 +30,19 @@ export const UserProvider = ({ children }) => {
         }
 
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            clearTimeout(safetyTimer); // Auth responded
+            // Note: We do NOT clear safetyTimer here yet. We wait for data.
             setUser(currentUser);
 
             if (currentUser) {
-                // Subscribe to user data in Firestore
                 const userRef = doc(db, 'users', currentUser.uid);
                 const unsubData = onSnapshot(userRef, (docSnap) => {
+                    // Data loaded! NOW we are safe.
+                    clearTimeout(safetyTimer);
+
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
-                        // Only check streak if lastLogin exists
                         checkDailyStreak(docSnap.data(), userRef);
                     } else {
-                        // Initialize new user
                         const initialData = {
                             phoneNumber: currentUser.phoneNumber || currentUser.email || 'Anonymous',
                             xp: 0,
@@ -53,12 +53,13 @@ export const UserProvider = ({ children }) => {
                         setDoc(userRef, initialData);
                         setUserData(initialData);
                     }
-                    setLoading(false); // Data loaded, app is ready
+                    setLoading(false);
                 });
-                // We keep the subscription active
             } else {
+                // No user, we are done loading
+                clearTimeout(safetyTimer);
                 setUserData({ xp: 0, level: 1, streak: 0, lastLogin: null });
-                setLoading(false); // No user, app is ready (Login screen)
+                setLoading(false);
             }
         });
         return () => {

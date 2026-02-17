@@ -17,7 +17,16 @@ const Leaderboard = () => {
             try {
                 const usersRef = collection(db, 'users');
                 const q = query(usersRef, orderBy('xp', 'desc'), limit(10));
-                const querySnapshot = await getDocs(q);
+
+                // Timeout promise
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("Request timed out")), 5000)
+                );
+
+                const querySnapshot = await Promise.race([
+                    getDocs(q),
+                    timeoutPromise
+                ]);
 
                 const results = [];
                 querySnapshot.forEach((doc) => {
@@ -26,6 +35,7 @@ const Leaderboard = () => {
                 setLeaders(results);
             } catch (error) {
                 console.error("Error fetching leaderboard:", error);
+                // Optionally set an error state to show UI
             } finally {
                 setLoading(false);
             }
