@@ -14,6 +14,11 @@ const Layout = () => {
     return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
   }
 
+  // Protection: If not logged in & not on login page -> Go to Login
+  if (!user && location.pathname !== '/login') {
+    return <Navigate to="/login" replace />;
+  }
+
   // If user is logged in BUT has no username, FORCE them to /onboarding
   // unless they are already there.
   if (user && !userData?.username && location.pathname !== '/onboarding') {
