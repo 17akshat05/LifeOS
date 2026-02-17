@@ -71,12 +71,35 @@ export const UserProvider = ({ children }) => {
     // Daily Streak Logic
     const checkDailyStreak = async (data, userRef) => {
         if (!data.lastLogin) return;
-        const lastLogin = new Date(data.lastLogin);
-        const today = new Date();
-        const diffTime = Math.abs(today - lastLogin);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays === 1) {
+        const lastLoginDate = new Date(data.lastLogin);
+        const today = new Date();
+
+        // Sanity Check: If stats are broken (infinite loop artifact), reset them
+        // This is a one-time fix for existing users affected by the bug
+        if (data.streak > 3650 || data.xp > 100000) {
+            console.log("Detecting corrupted data, resetting stats...");
+            await updateDoc(userRef, {
+                streak: 1,
+                xp: 0,
+                level: 1,
+                lastLogin: today.toISOString()
+            });
+            return;
+        }
+
+        // Compare calendar dates (ignore time)
+        const isSameDay = lastLoginDate.toDateString() === today.toDateString();
+
+        if (isSameDay) {
+            return; // Already logged in today, do nothing
+        }
+
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = lastLoginDate.toDateString() === yesterday.toDateString();
+
+        if (isYesterday) {
             // Consecutive day login
             // Sunday Bonus (0 = Sunday)
             let bonus = 0;
@@ -93,8 +116,9 @@ export const UserProvider = ({ children }) => {
                 lastLogin: today.toISOString(),
                 xp: increment(totalReward)
             });
-        } else if (diffDays > 1) {
-            // Streak broken
+        } else {
+            // Streak broken (missed a day or more)
+            // Note: We use > comparison for days, but if it's not today and not yesterday, it's broken.
             await updateDoc(userRef, {
                 streak: 1,
                 lastLogin: today.toISOString()
