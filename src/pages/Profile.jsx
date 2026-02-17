@@ -1,6 +1,7 @@
 import React from 'react';
 import Card from '../components/Card';
 import { User, Download, Upload, Settings, Shield } from 'lucide-react';
+import { useUser } from '../context/UserContext';
 import { usePlanner } from '../context/PlannerContext.jsx';
 import { useTraining } from '../context/TrainingContext.jsx';
 import { useNotes } from '../context/NotesContext.jsx';
@@ -9,6 +10,7 @@ import { useGoals } from '../context/GoalsContext.jsx';
 import { useReflection } from '../context/ReflectionContext.jsx';
 
 const Profile = () => {
+    const { userData } = useUser();
     const { tasks } = usePlanner();
     const { routines, history } = useTraining();
     const { notes } = useNotes();
@@ -16,47 +18,9 @@ const Profile = () => {
     const { goals } = useGoals();
     const { entries } = useReflection();
 
-    const handleExport = () => {
-        const data = {
-            tasks,
-            training: { routines, history },
-            notes,
-            finance: transactions,
-            goals,
-            reflection: entries,
-            exportedAt: new Date().toISOString()
-        };
+    // ... exports ...
 
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `lifeos-backup-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
-    const handleImport = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                // In a real app, we would validate and merge data here.
-                // For this prototype, we'll just alert the user that this feature 
-                // requires a complex merge strategy or clearing local storage first.
-                alert("Import feature detected valid JSON. To implement full restore, we would need to overwrite current contexts.");
-                console.log("Imported Data:", data);
-            } catch (err) {
-                alert("Invalid backup file.");
-            }
-        };
-        reader.readAsText(file);
-    };
+    const displayName = userData?.username ? `@${userData.username}` : (userData?.phoneNumber ? `User ${userData.phoneNumber.slice(-4)}` : 'User');
 
     return (
         <div style={{ padding: '20px', paddingBottom: '100px' }}>
@@ -66,8 +30,9 @@ const Profile = () => {
                 <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563EB, #A855F7)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', boxShadow: '0 8px 32px rgba(37, 99, 235, 0.3)' }}>
                     <User size={48} color="white" />
                 </div>
-                <h2 style={{ fontSize: '20px', fontWeight: 'bold' }}>Akshat</h2>
-                <p style={{ color: 'var(--text-secondary)' }}>Level 5 Achiever</p>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold' }}>{displayName}</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>Level {userData?.level || 1} Achiever</p>
+                <div style={{ fontSize: '12px', color: 'var(--color-training)', marginTop: '4px' }}>{userData?.xp || 0} XP • {userData?.streak || 0} Day Streak</div>
             </div>
 
             <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Data Management</h3>

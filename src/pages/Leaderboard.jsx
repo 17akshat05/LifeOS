@@ -86,7 +86,9 @@ const Leaderboard = () => {
                                 <User size={20} color="white" />
                             </div>
                             <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 'bold' }}>{leader.phoneNumber ? `User ${leader.phoneNumber.slice(-4)}` : 'User'}</div>
+                                <div style={{ fontWeight: 'bold' }}>
+                                    {leader.username ? `@${leader.username}` : (leader.phoneNumber ? `User ${leader.phoneNumber.slice(-4)}` : 'Anonymous')}
+                                </div>
                                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Level {leader.level}</div>
                             </div>
                             <div style={{ fontWeight: 'bold', color: 'var(--color-training)' }}>

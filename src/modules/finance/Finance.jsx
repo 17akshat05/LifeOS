@@ -55,20 +55,20 @@ const Finance = () => {
             {/* Balance Card */}
             <Card style={{ padding: '24px', marginBottom: '16px', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(0,0,0,0))' }}>
                 <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Total Balance</div>
-                <div style={{ fontSize: '32px', fontWeight: 'bold' }}>${getBalance().toFixed(2)}</div>
+                <div style={{ fontSize: '32px', fontWeight: 'bold' }}>₹{getBalance().toFixed(2)}</div>
                 <div style={{ display: 'flex', gap: '24px', marginTop: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ background: 'rgba(16, 185, 129, 0.2)', padding: '6px', borderRadius: '50%' }}><TrendingUp size={16} color="#10B981" /></div>
                         <div>
                             <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Income</div>
-                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>${getIncome().toFixed(2)}</div>
+                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>₹{getIncome().toFixed(2)}</div>
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '6px', borderRadius: '50%' }}><TrendingDown size={16} color="#EF4444" /></div>
                         <div>
                             <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Expenses</div>
-                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>${getExpenses().toFixed(2)}</div>
+                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>₹{getExpenses().toFixed(2)}</div>
                         </div>
                     </div>
                 </div>

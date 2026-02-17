@@ -12,6 +12,7 @@ import Reflection from './modules/reflection/Reflection';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
+import Onboarding from './pages/Onboarding';
 import Leaderboard from './pages/Leaderboard';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="profile" element={<Profile />} />
           <Route path="login" element={<Login />} />
+          <Route path="onboarding" element={<Onboarding />} />
           <Route path="leaderboard" element={<Leaderboard />} />
 
           <Route path="planner" element={<Planner />} />

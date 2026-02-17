@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ListTodo, Dumbbell, FileText, Wallet, Target, Sparkles, CheckCircle2, Circle } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePlanner } from '../context/PlannerContext.jsx';
+import { useUser } from '../context/UserContext.jsx';
 import Card from '../components/Card';
 import CircularProgress from '../components/CircularProgress';
 
@@ -16,6 +17,7 @@ const Home = () => {
     if (hour >= 17) greetingTime = "Evening";
 
     const { tasks } = usePlanner();
+    const { userData } = useUser();
 
     // Derived Data
     const incompleteTasks = tasks.filter(t => !t.completed).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -27,7 +29,10 @@ const Home = () => {
         if (p === 'medium') return '#F59E0B';
         return '#10B981';
     };
-    const greeting = `Good ${greetingTime}, Akshat 👋`;
+
+    // Display Name Logic
+    const displayName = userData?.username ? `@${userData.username}` : (userData?.phoneNumber ? `User ${userData.phoneNumber.slice(-4)}` : 'User');
+    const greeting = `Good ${greetingTime}, ${displayName} 👋`;
 
     const categories = [
         { id: 'planner', name: 'Planner', icon: <ListTodo size={28} />, color: 'var(--color-planner)', path: '/planner' },

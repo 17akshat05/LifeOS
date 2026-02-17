@@ -3,8 +3,22 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Home, LineChart, User, Grip } from 'lucide-react';
 import '../index.css';
 
+import { useUser } from '../context/UserContext';
+import { Navigate } from 'react-router-dom';
+
 const Layout = () => {
   const location = useLocation();
+  const { user, userData, loading } = useUser();
+
+  if (loading) {
+    return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+  }
+
+  // If user is logged in BUT has no username, FORCE them to /onboarding
+  // unless they are already there.
+  if (user && !userData?.username && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   return (
     <div className="layout-container" style={{ minHeight: '100vh', position: 'relative', display: 'flex', flexDirection: 'column' }}>
