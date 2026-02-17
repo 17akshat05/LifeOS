@@ -8,6 +8,7 @@ import { useNotes } from '../context/NotesContext.jsx';
 import { useFinance } from '../context/FinanceContext.jsx';
 import { useGoals } from '../context/GoalsContext.jsx';
 import { useReflection } from '../context/ReflectionContext.jsx';
+import { BADGES } from '../data/badges';
 
 const Profile = () => {
     const { userData } = useUser();
@@ -70,6 +71,49 @@ const Profile = () => {
                 <h2 style={{ fontSize: '20px', fontWeight: 'bold' }}>{displayName}</h2>
                 <p style={{ color: 'var(--text-secondary)' }}>Level {userData?.level || 1} Achiever</p>
                 <div style={{ fontSize: '12px', color: 'var(--color-training)', marginTop: '4px' }}>{userData?.xp || 0} XP • {userData?.streak || 0} Day Streak</div>
+            </div>
+
+            {/* Badges Section */}
+            <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Achievements</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '12px', marginBottom: '32px' }}>
+                {BADGES.map((badge) => {
+                    // Logic to check if badge is unlocked
+                    // For now, we need to pass all data to the condition or check a user.badges array
+                    // Let's assume user.badges contains IDs of unlocked badges for now
+                    const isUnlocked = userData?.badges?.includes(badge.id);
+                    const Icon = badge.icon;
+
+                    return (
+                        <div key={badge.id} style={{
+                            background: isUnlocked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                            border: isUnlocked ? `1px solid ${badge.color}` : '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '12px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            textAlign: 'center',
+                            opacity: isUnlocked ? 1 : 0.5,
+                            filter: isUnlocked ? 'none' : 'grayscale(100%)'
+                        }}>
+                            <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                background: isUnlocked ? `${badge.color}20` : 'rgba(255,255,255,0.05)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: '8px',
+                                color: badge.color
+                            }}>
+                                <Icon size={20} />
+                            </div>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>{badge.name}</div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{badge.description}</div>
+                        </div>
+                    );
+                })}
             </div>
 
             <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Data Management</h3>

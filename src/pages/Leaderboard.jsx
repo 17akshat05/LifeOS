@@ -7,7 +7,7 @@ import { Trophy, Medal, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Leaderboard = () => {
-    const { userData, logout } = useUser();
+    const { user, userData, logout } = useUser();
     const navigate = useNavigate();
     const [leaders, setLeaders] = useState([]);
     const [loading, setLoading] = useState(true);

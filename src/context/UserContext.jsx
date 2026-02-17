@@ -155,6 +155,21 @@ export const UserProvider = ({ children }) => {
         return 150 + Math.floor((xp - 70000) / 5000);
     };
 
+    const unlockBadge = async (badgeId) => {
+        if (!user || userData.badges?.includes(badgeId)) return;
+
+        const userRef = doc(db, 'users', user.uid);
+        const newBadges = [...(userData.badges || []), badgeId];
+
+        await updateDoc(userRef, {
+            badges: newBadges,
+            xp: increment(100) // Bonus XP for badge!
+        });
+
+        // Optional: Toast notification here
+        console.log(`Earned Badge: ${badgeId}`);
+    };
+
     const logout = () => signOut(auth);
 
     if (!auth) {
