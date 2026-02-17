@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { db } from '../firebase';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, setDoc, doc } from 'firebase/firestore';
 import Card from '../components/Card';
 import { User, Check, Loader2, AlertCircle } from 'lucide-react';
 
@@ -43,12 +43,17 @@ const Onboarding = () => {
                 return;
             }
 
-            // Save username
+            // Save username (Create doc if missing - Safe Upsert)
             const userRef = doc(db, 'users', user.uid);
-            await updateDoc(userRef, {
+            await setDoc(userRef, {
                 username: username.trim(),
-                isOnboarded: true
-            });
+                isOnboarded: true,
+                // Ensure base fields exist if this is the first write
+                xp: userData?.xp || 0,
+                level: userData?.level || 1,
+                streak: userData?.streak || 1,
+                lastLogin: new Date().toISOString()
+            }, { merge: true });
 
             // Redirect home
             // Navigation is enough because Layout checks context which updates automatically from Firestore

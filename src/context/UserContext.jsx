@@ -40,9 +40,11 @@ export const UserProvider = ({ children }) => {
                     clearTimeout(safetyTimer);
 
                     if (docSnap.exists()) {
+                        console.log("User Data Loaded:", docSnap.data());
                         setUserData(docSnap.data());
                         checkDailyStreak(docSnap.data(), userRef);
                     } else {
+                        console.log("No user doc found (or latency). Using local defaults. Waiting for Onboarding to create doc.");
                         const initialData = {
                             phoneNumber: currentUser.phoneNumber || currentUser.email || 'Anonymous',
                             xp: 0,
@@ -50,7 +52,8 @@ export const UserProvider = ({ children }) => {
                             streak: 1,
                             lastLogin: new Date().toISOString()
                         };
-                        setDoc(userRef, initialData);
+                        // CRITICAL FIX: Do NOT write to DB here. This prevents overwriting existing data on read failures.
+                        // setDoc(userRef, initialData); <--- REMOVED
                         setUserData(initialData);
                     }
                     setLoading(false);
