@@ -17,59 +17,50 @@ export const UserProvider = ({ children }) => {
     });
     const [loading, setLoading] = useState(true);
 
-    // Auth Listener
+    // 1. Auth Listener
     useEffect(() => {
-        // Failsafe: If Firebase takes too long, stop loading so user sees something (e.g. Login or Onboarding)
-        const safetyTimer = setTimeout(() => setLoading(false), 5000);
-
-        if (!auth) {
-            console.error("Auth instance is null. Firebase config might be missing.");
-            setLoading(false);
-            clearTimeout(safetyTimer);
-            return;
-        }
-
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            // Note: We do NOT clear safetyTimer here yet. We wait for data.
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
-
-            if (currentUser) {
-                const userRef = doc(db, 'users', currentUser.uid);
-                const unsubData = onSnapshot(userRef, (docSnap) => {
-                    // Data loaded! NOW we are safe.
-                    clearTimeout(safetyTimer);
-
-                    if (docSnap.exists()) {
-                        console.log("User Data Loaded:", docSnap.data());
-                        setUserData(docSnap.data());
-                        checkDailyStreak(docSnap.data(), userRef);
-                    } else {
-                        console.log("No user doc found (or latency). Using local defaults. Waiting for Onboarding to create doc.");
-                        const initialData = {
-                            phoneNumber: currentUser.phoneNumber || currentUser.email || 'Anonymous',
-                            xp: 0,
-                            level: 1,
-                            streak: 1,
-                            lastLogin: new Date().toISOString()
-                        };
-                        // CRITICAL FIX: Do NOT write to DB here. This prevents overwriting existing data on read failures.
-                        // setDoc(userRef, initialData); <--- REMOVED
-                        setUserData(initialData);
-                    }
-                    setLoading(false);
-                });
-            } else {
-                // No user, we are done loading
-                clearTimeout(safetyTimer);
+            if (!currentUser) {
                 setUserData({ xp: 0, level: 1, streak: 0, lastLogin: null });
                 setLoading(false);
             }
         });
-        return () => {
-            unsubscribe();
-            clearTimeout(safetyTimer);
-        };
+        return () => unsubscribe();
     }, []);
+
+    // 2. Data Listener (Runs when user changes)
+    useEffect(() => {
+        if (!user) return;
+
+        setLoading(true);
+        const userRef = doc(db, 'users', user.uid);
+
+        const unsubData = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+                console.log(`[UserContext] Data Loaded for ${user.uid}:`, docSnap.data());
+                setUserData(docSnap.data());
+                checkDailyStreak(docSnap.data(), userRef);
+            } else {
+                console.log(`[UserContext] No Doc for ${user.uid}. Using local defaults.`);
+                const initialData = {
+                    phoneNumber: user.phoneNumber || user.email || 'Anonymous',
+                    xp: 0,
+                    level: 1,
+                    streak: 1,
+                    lastLogin: new Date().toISOString()
+                };
+                setUserData(initialData);
+            }
+            setLoading(false);
+        }, (err) => {
+            console.error("[UserContext] Snapshot Error:", err);
+            setLoading(false);
+        });
+
+        // Cleanup previous listener when user changes
+        return () => unsubData();
+    }, [user]);
 
     // Daily Streak Logic
     const checkDailyStreak = async (data, userRef) => {
